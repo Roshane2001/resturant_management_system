@@ -1,0 +1,2 @@
+Print KOT - print settings keep 
+    More settings - > Margin -> Minimum keep
