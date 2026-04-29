@@ -149,7 +149,14 @@ include('orders_fetch_waitor.php');
 
             setInterval(function() {
                 checkForReadyOrders();
-            }, 5000);
+            }, 2000);
+
+            // Refresh the page every 10 seconds to keep data up to date
+            setInterval(function() {
+                if (!Swal.isVisible()) {
+                    location.reload();
+                }
+            }, 10000);
 
             // Event delegation for dynamically added table buttons
             $(document).on('click', '.table-btn', function() {

@@ -24,7 +24,7 @@ if(empty($safe_ids)) die("No items to print");
 $order_query = mysqli_query($con, "SELECT o.ID, t.TableName, o.OrderDate, o.OrderType FROM tblorder o LEFT JOIN tbltables t ON o.TableID = t.ID WHERE o.ID = $order_id");
 $order = mysqli_fetch_assoc($order_query);
 
-// Fetch Items
+ // Fetch Items
 $items_query = mysqli_query($con, "SELECT d.Qty, d.Price, p.ProductName, s.StaffName FROM tblorder_details d LEFT JOIN tblproducts p ON d.ProductID = p.ID LEFT JOIN tblstaff s ON d.staff_id = s.ID WHERE d.ID IN ($ids_query_part)");
 
 $order_items = [];
@@ -76,14 +76,25 @@ if ($items_query) {
     <table class="items-table">
         <thead><tr><th>ITEM</th><th class="qty-col">QTY</th><th class="price-col">PRICE</th></tr></thead>
         <tbody>
-        <?php foreach ($order_items as $item): ?>
+        <?php 
+        $final_amount = 0;
+        foreach ($order_items as $item): 
+            $item_total = $item['Price'] * $item['Qty'];
+            $final_amount += $item_total;
+        ?>
             <tr>
                 <td><?php echo htmlspecialchars($item['ProductName']); ?></td>
                 <td class="qty-col"><?php echo $item['Qty']; ?></td>
-                <td class="price-col"><?php echo number_format($item['Price'], 2); ?></td>
+                <td class="price-col"><?php echo number_format($item_total, 2); ?></td>
             </tr>
         <?php endforeach; ?>
         </tbody>
+        <tfoot>
+            <tr>
+                <th colspan="2" style="text-align:right; border-top: 1px solid #000; padding-top: 5px;">Total:</th>
+                <th class="price-col" style="border-top: 1px solid #000; padding-top: 5px;"><?php echo number_format($final_amount, 2); ?></th>
+            </tr>
+        </tfoot>
     </table>
     <div class="footer">
         <p>Waitor: <?php echo htmlspecialchars($waiter_name); ?></p>

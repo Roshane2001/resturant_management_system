@@ -12,9 +12,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['order_data'])) {
     $total = floatval($data['total']);
     $serviceCharge = isset($data['serviceCharge']) ? floatval($data['serviceCharge']) : 0;
     $discount = isset($data['discount']) ? floatval($data['discount']) : 0;
-    $paymentMethod = isset($data['paymentMethod']) ? $data['paymentMethod'] : 'Cash';
+    $advance = isset($data['advance']) ? floatval($data['advance']) : 0;
+    $damageClaim = isset($data['damageClaim']) ? floatval($data['damageClaim']) : 0;
     $orderType = isset($data['orderType']) ? $data['orderType'] : 'Dine In';
-    $orderStatus = isset($data['orderStatus']) ? $data['orderStatus'] : 'Paid';
+    $orderStatus = isset($data['orderStatus']) ? $data['orderStatus'] : 'Paid'; 
 
     if (empty($items)) {
         echo json_encode(['status' => 'error', 'message' => 'Cart is empty']);
@@ -38,8 +39,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['order_data'])) {
 
         if ($orderId == 0) {
             // Create new order (Take Away or new Dine-in)
-            $stmt = $con->prepare("INSERT INTO tblorder (TableID, OrderDate, TotalAmount, ServiceCharge, Discount, Status, Time, PaymentMethod, OrderType) VALUES (?, NOW(), ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("idddssss", $tableId, $total, $serviceCharge, $discount, $orderStatus, $currentTime, $paymentMethod, $orderType);
+            $stmt = $con->prepare("INSERT INTO tblorder (TableID, OrderDate, TotalAmount, ServiceCharge, Discount, Advance, DamageClaim, Status, Time, OrderType) VALUES (?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("idddddsss", $tableId, $total, $serviceCharge, $discount, $advance, $damageClaim, $orderStatus, $currentTime, $orderType);
             if (!$stmt->execute()) {
                 throw new Exception("Order creation failed: " . $stmt->error);
             }
@@ -57,8 +58,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['order_data'])) {
 
         } else {
             // Update existing order (Closing an active Dine-in bill)
-            $stmt = $con->prepare("UPDATE tblorder SET TotalAmount=?, ServiceCharge=?, Discount=?, Status=?, Time=?, PaymentMethod=?, OrderType=? WHERE ID=?");
-            $stmt->bind_param("dddssssi", $total, $serviceCharge, $discount, $orderStatus, $currentTime, $paymentMethod, $orderType, $orderId);
+            $stmt = $con->prepare("UPDATE tblorder SET TotalAmount=?, ServiceCharge=?, Discount=?, Advance=?, DamageClaim=?, Status=?, Time=?, OrderType=? WHERE ID=?");
+            $stmt->bind_param("dddddsssi", $total, $serviceCharge, $discount, $advance, $damageClaim, $orderStatus, $currentTime, $orderType, $orderId);
             if (!$stmt->execute()) {
                 throw new Exception("Order update failed: " . $stmt->error);
             }

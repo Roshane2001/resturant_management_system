@@ -1,4 +1,5 @@
 <?php
+session_start();
 include('../../include/dbconnection.php');
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -11,6 +12,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         echo "Parent Category and Sub Category Name are required.";
         exit;
     }
+
+    // Fetch current details for activity logging
+    $stmt_old = $con->prepare("SELECT CategoryName, ParentCategoryID FROM tblcategory WHERE ID = ?");
+    $stmt_old->bind_param("i", $category_id);
+    $stmt_old->execute();
+    $res_old = $stmt_old->get_result();
+    $old_data = $res_old->fetch_assoc();
+    $old_name = $old_data['CategoryName'] ?? 'Unknown';
+    $stmt_old->close();
 
     // Check for duplicate category name, excluding the current category
     $check_stmt = $con->prepare("SELECT ID FROM tblcategory WHERE CategoryName = ? AND ParentCategoryID = ? AND ID != ?");
@@ -30,6 +40,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $stmt->bind_param("sii", $category_name, $parent_category_id, $category_id);
 
     if ($stmt->execute()) {
+        // Log user activity
+        $user_id = $_SESSION['uid'];
+        $changes = [];
+        if ($old_data['CategoryName'] != $category_name) $changes[] = "Name";
+        if ($old_data['ParentCategoryID'] != $parent_category_id) $changes[] = "Parent Category";
+        
+        $change_str = !empty($changes) ? " (" . implode(', ', $changes) . ")" : " (No changes)";
+        $activity_desc = "Updated sub-category: " . $old_name . $change_str;
+        
+        $log_sql = "INSERT INTO tbluser_activity (UserID, Activity, ActivityTime) VALUES (?, ?, NOW())";
+        $log_stmt = mysqli_prepare($con, $log_sql);
+        if ($log_stmt) {
+            mysqli_stmt_bind_param($log_stmt, "is", $user_id, $activity_desc);
+            mysqli_stmt_execute($log_stmt);
+            mysqli_stmt_close($log_stmt);
+        }
+
         echo 'yes';
     } else {
         echo 'Something went wrong. Please try again. Error: ' . htmlspecialchars($stmt->error);

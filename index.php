@@ -1,3 +1,15 @@
+<?php
+session_start();
+include('include/dbconnection.php');
+
+if (empty($_SESSION['uid'])) {
+    header('location:auth/login.php');
+    exit;
+}
+// Fetch roles from the database
+$roles_sql = "SELECT role_name FROM tblrole ORDER BY role_name ASC";
+$roles_result = mysqli_query($con, $roles_sql);
+?>
 <!DOCTYPE html>
 <html lang="en">
 

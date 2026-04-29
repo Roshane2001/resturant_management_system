@@ -80,13 +80,6 @@ $phone_no = isset($branding['phone_no']) ? $branding['phone_no'] : '';
                 Order Type: Take Away
             <?php endif; ?>
         </span>
-        <span>
-            <?php 
-            $pm = $order['PaymentMethod'];
-            if($pm === '0') $pm = 'Cash'; elseif($pm === '1') $pm = 'Card'; elseif($pm === '2') $pm = 'Online';
-            echo 'Pay: ' . htmlspecialchars($pm);
-            ?>
-        </span>
     </div>
 
     <table class="items-table">
@@ -128,6 +121,18 @@ $phone_no = isset($branding['phone_no']) ? $branding['phone_no'] : '';
         <div style="display:flex; justify-content:space-between; font-size: 12px;">
             <span>Discount (<?php echo $discountPercentage; ?>%)</span>
             <span><?php echo number_format($order['Discount'], 2); ?></span>
+        </div>
+        <?php endif; ?>
+        <?php if($order['Advance'] > 0): ?>
+        <div style="display:flex; justify-content:space-between; font-size: 12px;">
+            <span>Advance Paid</span>
+            <span><?php echo number_format($order['Advance'], 2); ?></span>
+        </div>
+        <?php endif; ?>
+        <?php if(isset($order['DamageClaim']) && $order['DamageClaim'] > 0): ?>
+        <div style="display:flex; justify-content:space-between; font-size: 12px;">
+            <span>Damage Claim</span>
+            <span><?php echo number_format($order['DamageClaim'], 2); ?></span>
         </div>
         <?php endif; ?>
         <div style="display:flex; justify-content:space-between; font-weight:bold; font-size: 14px;">

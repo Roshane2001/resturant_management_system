@@ -21,12 +21,21 @@ if (!is_dir($uploadDir)) {
 }
 
 // Get current file paths from DB to avoid overwriting them with empty values if no new file is uploaded
-$sql_select = "SELECT logo, favicon, notification_sound FROM tblbranding LIMIT 1";
+$sql_select = "SELECT * FROM tblbranding LIMIT 1";
 $result = mysqli_query($con, $sql_select);
-$current_files = mysqli_fetch_assoc($result) ?: ['logo' => '', 'favicon' => '', 'notification_sound' => ''];
-$logo_filename_db = $current_files['logo'];
-$favicon_filename_db = $current_files['favicon'];
-$sound_filename_db = $current_files['notification_sound'];
+$current_data = mysqli_fetch_assoc($result) ?: [];
+$logo_filename_db = $current_data['logo'] ?? '';
+$favicon_filename_db = $current_data['favicon'] ?? '';
+$sound_filename_db = $current_data['notification_sound'] ?? '';
+
+// Track changes for a more detailed activity log
+$changes = [];
+if (($current_data['company_name'] ?? '') != $company_name) $changes[] = "Company Name";
+if (($current_data['website_name'] ?? '') != $website_name) $changes[] = "Website Name";
+if (($current_data['phone_no'] ?? '') != $phone_no) $changes[] = "Phone No";
+if (($current_data['address'] ?? '') != $address) $changes[] = "Address";
+if (floatval($current_data['service_charge'] ?? 0) != floatval($service_charge)) $changes[] = "Service Charge";
+if (intval($current_data['pax'] ?? 0) != intval($pax)) $changes[] = "Pax";
 
 // Handle logo upload
 if (isset($_FILES['logo']) && $_FILES['logo']['error'] == UPLOAD_ERR_OK) {
@@ -38,6 +47,7 @@ if (isset($_FILES['logo']) && $_FILES['logo']['error'] == UPLOAD_ERR_OK) {
             unlink($uploadDir . $logo_filename_db);
         }
         $logo_filename_db = $new_logo_filename; // Update the variable for the DB with the new filename
+        $changes[] = "Logo";
     } else {
         echo "Error uploading logo.";
         exit;
@@ -54,6 +64,7 @@ if (isset($_FILES['favicon']) && $_FILES['favicon']['error'] == UPLOAD_ERR_OK) {
             unlink($uploadDir . $favicon_filename_db);
         }
         $favicon_filename_db = $new_favicon_filename; // Update the variable for the DB with the new filename
+        $changes[] = "Favicon";
     } else {
         echo "Error uploading favicon.";
         exit;
@@ -70,6 +81,7 @@ if (isset($_FILES['notification_sound']) && $_FILES['notification_sound']['error
             unlink($uploadDir . $sound_filename_db);
         }
         $sound_filename_db = $new_sound_filename; // Update the variable for the DB with the new filename
+        $changes[] = "Notification Sound";
     } else {
         echo "Error uploading notification sound.";
         exit;
@@ -93,7 +105,24 @@ if (mysqli_num_rows($check_result) > 0) {
 }
 
 if ($stmt) {
-    echo mysqli_stmt_execute($stmt) ? "yes" : "no: " . mysqli_stmt_error($stmt);
+    if (mysqli_stmt_execute($stmt)) {
+        // Log user activity for the branding update
+        $user_id = $_SESSION['uid'];
+        
+        $change_list = !empty($changes) ? " (" . implode(', ', $changes) . ")" : "";
+        $activity_desc = (empty($current_data)) ? "Initial branding setup" : "Updated branding details" . $change_list;
+
+        $log_sql = "INSERT INTO tbluser_activity (UserID, Activity, ActivityTime) VALUES (?, ?, NOW())";
+        $log_stmt = mysqli_prepare($con, $log_sql);
+        if ($log_stmt) {
+            mysqli_stmt_bind_param($log_stmt, "is", $user_id, $activity_desc);
+            mysqli_stmt_execute($log_stmt);
+            mysqli_stmt_close($log_stmt);
+        }
+        echo "yes";
+    } else {
+        echo "no: " . mysqli_stmt_error($stmt);
+    }
     mysqli_stmt_close($stmt);
 } else {
     echo "no: " . mysqli_error($con);

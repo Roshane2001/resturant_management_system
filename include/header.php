@@ -33,4 +33,5 @@ $company_name = isset($current_branding, $current_branding['company_name']) && !
 
 <!-- Custom styles for this template-->
 <link href="/resturant-management-system/css/sb-admin-2.min.css" rel="stylesheet">
+<link href="/resturant-management-system/vendor/datatables/dataTables.bootstrap4.min.css" rel="stylesheet">
 </head>

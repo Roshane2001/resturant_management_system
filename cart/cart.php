@@ -3,7 +3,7 @@ session_start();
 include('../include/dbconnection.php');
 
 if (empty($_SESSION['uid'])) {
-    header('location:../auth/login.php');
+    header('location:./../auth/login.php');
     exit;
 }
 
@@ -205,17 +205,16 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
                                     <span class="font-weight-bold" id="service-charge">0.00</span>
                                 </div>
                                 <div class="d-flex justify-content-between mb-2 align-items-center">
-                                    <span class="text-gray-600">Discount (<input type="number" id="discount-percent" class="form-control form-control-sm d-inline-block text-right" style="width: 60px; padding: 0 5px;" value="0" min="0" oninput="renderCart()" onfocus="setActiveInput(this.id)">%)</span>
+                                    <span class="text-gray-600">Discount (<input type="number" id="discount-percent" class="form-control form-control-sm d-inline-block text-right" style="width: 60px; padding: 0 5px;" value="0" min="0" max="100" oninput="renderCart()" onfocus="setActiveInput(this.id)">%)</span>
                                     <span class="font-weight-bold" id="discount">0.00</span>
                                 </div>
-                                <div class="mb-2">
-                                    <span class="text-gray-600">Payment Method</span>
-                                    <div class="btn-group w-100 mt-1" role="group">
-                                        <button type="button" class="btn btn-primary btn-sm payment-btn active" onclick="setPaymentMethod(this, '0')">Cash</button>
-                                        <button type="button" class="btn btn-outline-secondary btn-sm payment-btn" onclick="setPaymentMethod(this, '1')">Card</button>
-                                        <button type="button" class="btn btn-outline-secondary btn-sm payment-btn" onclick="setPaymentMethod(this, '2')">Online</button>
-                                    </div>
-                                    <input type="hidden" id="payment-method" value="0">
+                                <div class="d-flex justify-content-between mb-2 align-items-center">
+                                    <span class="text-gray-600">Advance</span>
+                                    <input type="number" id="advance-amount" class="form-control form-control-sm d-inline-block text-right" style="width: 80px; padding: 0 5px;" value="0" min="0" oninput="renderCart()" onfocus="setActiveInput(this.id)">
+                                </div>
+                                <div class="d-flex justify-content-between mb-2 align-items-center">
+                                    <span class="text-gray-600">Damage Claim</span>
+                                    <input type="number" id="damage-claim" class="form-control form-control-sm d-inline-block text-right" style="width: 80px; padding: 0 5px;" value="0" min="0" oninput="renderCart()" onfocus="setActiveInput(this.id)">
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <span class="h4 font-weight-bold text-gray-800">TOTAL</span>
@@ -240,20 +239,28 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
 
                         <!-- Right Panel (Menu + Keypad) -->
                         <div class="col-md-8 right-panel">
+                            <!-- Search Bar -->
+                            <div class="bg-white p-2 border-bottom shadow-sm">
+                                <div class="input-group">
+                                    <div class="input-group-prepend"><span class="input-group-text bg-white border-right-0"><i class="fas fa-search text-primary"></i></span></div>
+                                    <input type="text" id="productSearch" class="form-control border-left-0 shadow-none" placeholder="Search products by name..." oninput="searchProducts()">
+                                </div>
+                            </div>
                             <!-- Parent Categories -->
                             <div class="parent-tabs">
                                 <ul class="nav nav-pills" id="parent-tabs-list" role="tablist">
-                                    <li class='nav-item'>
-                                        <a class='nav-link active' id='parent-all-tab' data-toggle='pill' href='javascript:void(0)' onclick="filterSubCategories('all')" role='tab' aria-selected='true'>All</a>
-                                    </li>
                                     <?php 
                                     if(isset($parent_categories) && $parent_categories) {
+                                        $isFirstParent = true;
                                         foreach ($parent_categories as $pcat) {
                                             $pid = $pcat['ID'];
+                                            $activeClass = $isFirstParent ? 'active' : '';
+                                            $ariaSelected = $isFirstParent ? 'true' : 'false';
                                             $pname = isset($pcat['ParentCategoryName']) ? htmlspecialchars($pcat['ParentCategoryName']) : 'Parent Category';
                                             echo "<li class='nav-item'>
-                                                    <a class='nav-link' id='parent-$pid-tab' data-toggle='pill' href='javascript:void(0)' onclick=\"filterSubCategories($pid)\" role='tab' aria-controls='parent-$pid' aria-selected='false'>$pname</a>
+                                                    <a class='nav-link $activeClass' id='parent-$pid-tab' data-toggle='pill' href='javascript:void(0)' onclick=\"filterSubCategories($pid)\" role='tab' aria-controls='parent-$pid' aria-selected='$ariaSelected'>$pname</a>
                                                   </li>";
+                                            $isFirstParent = false;
                                         }
                                     }
                                     ?>
@@ -263,8 +270,12 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
                             <!-- Menu Categories (Top Tabs) -->
                             <div class="menu-tabs">
                                 <ul class="nav nav-pills" id="pills-tab" role="tablist">
+                                    <!--  
+                                    <li class='nav-item sub-cat-item' data-parent-id='all' style="display: block;">
+                                        <a class='nav-link active' id='pills-all-tab' data-toggle='pill' href='#pills-all' role='tab' aria-controls='pills-all' aria-selected='true'>All Items</a>
+                                    </li>-->
                                     <?php 
-                                    $first = true;
+                                    $first = false;
                                     if($cats) {
                                         foreach ($cats as $cat) {
                                             $active = $first ? 'active' : '';
@@ -389,6 +400,13 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
                 // If no existing item from this cashier, add a new one.
                 cart.push({ id, name, price, qty: 1, staff_id: current_staff_id });
             }
+            
+            // User-friendly Toast Feedback
+            const Toast = Swal.mixin({
+                toast: true, position: 'bottom-end', showConfirmButton: false, timer: 1000, timerProgressBar: true
+            });
+            Toast.fire({ icon: 'success', title: name + ' added' });
+
             renderCart();
         }
 
@@ -414,7 +432,7 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
                             <div style="flex:1">
                                 <div class="font-weight-bold text-gray-800">${item.name}</div>
                                 <div class="d-flex align-items-center mt-1">
-                                    <small class="text-muted mr-2">${item.price}</small>
+                                    <small class="text-muted mr-2">${parseFloat(item.price).toFixed(2)}</small>
                                     <button class="btn btn-sm btn-light border py-0 px-2" onclick="updateItemQty(${index}, -1)">-</button>
                                     <input type="number" id="qty-${index}" class="form-control form-control-sm mx-2 text-center p-0" style="width: 45px; height: 25px;" value="${item.qty}" onchange="setQty(${index}, this.value)" onfocus="setActiveInput(this.id)">
                                     <button class="btn btn-sm btn-light border py-0 px-2" onclick="updateItemQty(${index}, 1)">+</button>
@@ -432,9 +450,21 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
             }
 
             let discountPercent = parseFloat(document.getElementById('discount-percent').value) || 0;
-            let discountAmount = serviceCharge * (discountPercent / 100);
+            
+            // Enforce range 0 - 100
+            if (discountPercent > 100) {
+                discountPercent = 100;
+                document.getElementById('discount-percent').value = 100;
+            } else if (discountPercent < 0) {
+                discountPercent = 0;
+                document.getElementById('discount-percent').value = 0;
+            }
 
-            let total = subtotal + serviceCharge - discountAmount;
+            let discountAmount = serviceCharge * (discountPercent / 100);
+            let advanceAmount = parseFloat(document.getElementById('advance-amount').value) || 0;
+            let damageClaim = parseFloat(document.getElementById('damage-claim').value) || 0;
+
+            let total = subtotal + serviceCharge + damageClaim - discountAmount - advanceAmount;
             if (total < 0) total = 0;
 
             document.getElementById('subtotal').innerText = subtotal.toFixed(2);
@@ -444,6 +474,41 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
             document.getElementById('total-amount').innerText = total.toFixed(2);
         }
 
+        function searchProducts() {
+            let query = document.getElementById('productSearch').value.toLowerCase();
+            let panes = document.querySelectorAll('.tab-pane');
+            let cards = document.querySelectorAll('.food-card');
+            let categoryTabs = document.querySelector('.menu-tabs');
+            let parentTabs = document.querySelector('.parent-tabs');
+
+            if (query.length > 0) {
+                // When searching, hide category navigation to focus on results
+                categoryTabs.style.display = 'none';
+                parentTabs.style.display = 'none';
+                
+                panes.forEach(pane => pane.classList.add('show', 'active'));
+
+                cards.forEach(card => {
+                    let name = card.querySelector('.item-name').innerText.toLowerCase();
+                    let container = card.closest('.col-xl-3');
+                    container.style.display = name.includes(query) ? "" : "none";
+                });
+            } else {
+                // Reset to standard tab-based view
+                categoryTabs.style.display = '';
+                parentTabs.style.display = '';
+                
+                const activeTabLink = document.querySelector('#pills-tab .nav-link.active');
+                const activePaneId = activeTabLink ? activeTabLink.getAttribute('href').replace('#', '') : null;
+                
+                panes.forEach(pane => {
+                    pane.classList.remove('show', 'active');
+                    if (pane.id === activePaneId) pane.classList.add('show', 'active');
+                });
+                document.querySelectorAll('.food-grid-container .row > div').forEach(col => col.style.display = "");
+            }
+        }
+
         function filterSubCategories(parentId) {
             // Update active state of parent tabs
             document.querySelectorAll('#parent-tabs-list .nav-link').forEach(el => {
@@ -451,9 +516,7 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
                 el.setAttribute('aria-selected', 'false');
             });
             
-            const activeTab = parentId === 'all' 
-                ? document.getElementById('parent-all-tab') 
-                : document.getElementById('parent-' + parentId + '-tab');
+            const activeTab = document.getElementById('parent-' + parentId + '-tab');
             
             if(activeTab) {
                 activeTab.classList.add('active');
@@ -467,8 +530,8 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
 
             items.forEach(item => {
                 const itemParentId = item.getAttribute('data-parent-id');
-                if (parentId === 'all' || itemParentId == parentId) {
-                    item.style.display = '';
+                if (itemParentId == parentId) {
+                    item.style.display = ''; //block
                     if (!firstVisible) firstVisible = item;
                     if (item.querySelector('.nav-link').classList.contains('active')) {
                         currentActiveIsVisible = true;
@@ -478,7 +541,7 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
                 }
             });
 
-            // If current active tab is hidden, switch to first visible
+            // if current active tab is hidden, switch to first visibile
             if (!currentActiveIsVisible && firstVisible) {
                 firstVisible.querySelector('.nav-link').click();
             }
@@ -487,6 +550,7 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
         function clearCart() {
             cart = [];
             document.getElementById('discount-percent').value = 0;
+            document.getElementById('damage-claim').value = 0;
             renderCart();
         }
 
@@ -558,6 +622,8 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
                     if (response.status === 'success') {
                         cart = response.items;
                         currentOrderId = response.order_id;
+                        document.getElementById('advance-amount').value = response.advance || 0;
+                        document.getElementById('damage-claim').value = response.damage_claim || 0;
                         renderCart();
                     } else {
                         cart = [];
@@ -840,10 +906,11 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
                     total: parseFloat(document.getElementById('total-amount').innerText),
                     serviceCharge: parseFloat(document.getElementById('service-charge').innerText),
                     discount: parseFloat(document.getElementById('discount').innerText),
+                    advance: parseFloat(document.getElementById('advance-amount').value) || 0,
+                    damageClaim: parseFloat(document.getElementById('damage-claim').value) || 0,
                     tableId: selectedTableId || 0,
                     orderId: 0,
                     orderType: currentOrderType,
-                    paymentMethod: document.getElementById('payment-method').value,
                     orderStatus: 'Pending' // Save as Pending
                 };
 
@@ -918,10 +985,11 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
                         total: parseFloat(document.getElementById('total-amount').innerText),
                         serviceCharge: parseFloat(document.getElementById('service-charge').innerText),
                         discount: parseFloat(document.getElementById('discount').innerText),
+                        advance: parseFloat(document.getElementById('advance-amount').value) || 0,
+                        damageClaim: parseFloat(document.getElementById('damage-claim').value) || 0,
                         tableId: selectedTableId || 0,
                         orderId: currentOrderId || 0,
                         orderType: currentOrderType,
-                        paymentMethod: document.getElementById('payment-method').value,
                         orderStatus: 'Paid'
                     };
 
@@ -963,6 +1031,8 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
 
         // --- Real-time Order Polling ---
         let lastOrderDetailId = <?php echo $initial_max_id; ?>;
+        let isNotifying = false;
+        let audioPlayer = null;
 
         // Poll for pending tables every 5 seconds to update the dropdown
         setInterval(function() {
@@ -976,6 +1046,9 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
         }, 5000);
 
         setInterval(function() {
+            // Prevent multiple overlapping alerts or sounds
+            if (isNotifying || Swal.isVisible()) return;
+
             $.ajax({
                 url: 'check_new_orders.php',
                 type: 'GET',
@@ -996,7 +1069,15 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
 
                     if (response.has_new) {
                         lastOrderDetailId = response.new_max_id;
+                        isNotifying = true;
                         
+                        // 1. Play the notification sound from branding in a loop
+                        if (response.sound) {
+                            audioPlayer = new Audio('../branding/uploads/' + response.sound);
+                            audioPlayer.loop = true;
+                            audioPlayer.play().catch(e => console.log("Interaction required for audio."));
+                        }
+
                         Swal.fire({
                             title: 'New Order Alert!',
                             text: 'Order #' + response.order_id + ' has new items.',
@@ -1011,6 +1092,13 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
                                 popup: 'animated tada'
                             }
                         }).then((result) => {
+                            // 2. Stop and reset the sound when clicking Print KOT or closing
+                            if (audioPlayer) {
+                                audioPlayer.pause();
+                                audioPlayer.currentTime = 0;
+                            }
+                            isNotifying = false;
+
                             if (result.isConfirmed) {
                                 // 1. Update the status in the database to 1 (Processing)
                                 $.ajax({
@@ -1037,6 +1125,12 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
                 }
             });
         }, 5000);
+
+        // Initialize the first parent category filter on load
+        const firstParentTab = document.querySelector('#parent-tabs-list .nav-link');
+        if (firstParentTab) {
+            firstParentTab.click();
+        }
     </script>
 </body>
 

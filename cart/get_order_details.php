@@ -8,7 +8,7 @@ if (isset($_GET['table_id'])) {
     
     // Get active order for the table
     // Status 'Pending' is assumed to be the active status for orders on tables
-    $query = "SELECT ID FROM tblorder WHERE TableID = ? AND Status = 'Pending' LIMIT 1";
+    $query = "SELECT ID, Advance, DamageClaim FROM tblorder WHERE TableID = ? AND Status = 'Pending' LIMIT 1";
     $stmt = $con->prepare($query);
     $stmt->bind_param("i", $table_id);
     $stmt->execute();
@@ -35,7 +35,13 @@ if (isset($_GET['table_id'])) {
             $items[] = $item;
         }
         
-        echo json_encode(['status' => 'success', 'items' => $items, 'order_id' => $order_id]);
+        echo json_encode([
+            'status' => 'success', 
+            'items' => $items, 
+            'order_id' => $order_id,
+            'advance' => floatval($row['Advance']),
+            'damage_claim' => floatval($row['DamageClaim'])
+        ]);
     } else {
         echo json_encode(['status' => 'error', 'message' => 'No active order found']);
     }

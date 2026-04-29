@@ -1,4 +1,5 @@
 <?php
+session_start();
 include('../../include/dbconnection.php');
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -29,6 +30,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $stmt->bind_param("is", $parent_id, $category_name);
 
     if ($stmt->execute()) {
+        // Log user activity
+        $user_id = $_SESSION['uid'];
+        $activity_desc = "Added new sub-category: " . $category_name;
+        $log_sql = "INSERT INTO tbluser_activity (UserID, Activity, ActivityTime) VALUES (?, ?, NOW())";
+        
+        if ($log_stmt = mysqli_prepare($con, $log_sql)) {
+            mysqli_stmt_bind_param($log_stmt, "is", $user_id, $activity_desc); // 'i' for integer, 's' for string
+            if (!mysqli_stmt_execute($log_stmt)) {
+                // Log the error if execution fails
+                error_log("Error inserting activity log: " . mysqli_stmt_error($log_stmt));
+                // Optionally, you could echo an error here for debugging, but usually not in production
+                // echo "Error logging activity: " . htmlspecialchars(mysqli_stmt_error($log_stmt));
+            }
+            mysqli_stmt_close($log_stmt);
+        } else {
+            // Log the error if preparation fails
+            error_log("Error preparing activity log statement: " . mysqli_error($con));
+            // echo "Error preparing log statement: " . htmlspecialchars(mysqli_error($con));
+        }
         echo 'yes';
     } else {
         echo 'Something went wrong. Please try again. Error: ' . htmlspecialchars($stmt->error);

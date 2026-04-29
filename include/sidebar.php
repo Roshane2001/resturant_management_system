@@ -2,13 +2,23 @@
 // The $current_branding variable is expected to be set from header.php,
 // which should be included before this file.
 $sidebar_logo = $current_branding['logo'] ?? '';
-$sidebar_website_name = !empty($current_branding['website_name']) ? $current_branding['website_name'] : ($current_branding['company_name'] ?? 'RMS');
+$sidebar_website_name = !empty($current_branding['website_name']) ? $current_branding['website_name'] : ($current_branding['company_name'] ?? 'RMS'); 
+
+// Determine the correct dashboard link based on the user's session role
+$dashboard_link = "/resturant-management-system/"; // Default link if no role or unknown role
+if (isset($_SESSION['role'])) {
+    if ($_SESSION['role'] === 'Waitor') {
+        $dashboard_link = "/resturant-management-system/waitor/waitor.php";
+    } else { // Admin or Cashier
+        $dashboard_link = "/resturant-management-system/dashboard/admin_dashboard.php";
+    }
+}
 ?>
 <!-- Sidebar -->
 <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
 
     <!-- Sidebar - Brand -->
-    <a class="sidebar-brand d-flex align-items-center justify-content-center" href="/resturant-management-system/">
+    <a class="sidebar-brand d-flex align-items-center justify-content-center" href="<?php echo $dashboard_link; ?>">
         <div class="sidebar-brand-icon <?php if (empty($sidebar_logo)) echo 'rotate-n-15'; ?>">
             <?php if (!empty($sidebar_logo)): ?>
             <img src="/resturant-management-system/branding/uploads/<?php echo htmlspecialchars($sidebar_logo); ?>"
@@ -29,14 +39,7 @@ $sidebar_website_name = !empty($current_branding['website_name']) ? $current_bra
             <i class="fas fa-fw fa-tachometer-alt"></i>
             <span>Dashboard</span></a>
     </li>
-
-    <!-- Nav Item - Branding -->
-    <li class="nav-item">
-        <a class="nav-link" href="/resturant-management-system/branding/branding.php">
-            <i class="fas fa-fw fa-cog"></i>
-            <span>branding</span></a>
-    </li>
-
+    
     <!-- Menus -->
     <li class="nav-item">
         <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseMenus" aria-expanded="true"
@@ -59,11 +62,26 @@ $sidebar_website_name = !empty($current_branding['website_name']) ? $current_bra
 
     </li>
 
+    <!-- reports -->
+    <li class="nav-item">
+        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseReports" aria-expanded="true"
+            aria-controls="collapseReports">
+            <i class="fas fa-fw fa-chart-line"></i>
+            <span>Reports</span>
+        </a>
+        <div id="collapseReports" class="collapse" aria-labelledby="headingReports" data-parent="#accordionSidebar">
+            <div class="bg-white py-2 collapse-inner rounded">
+                <a class="collapse-item" href="/resturant-management-system/reports/income_report.php">Income Report</a>
+                <a class="collapse-item" href="/resturant-management-system/reports/monthly_report.php">Monthly Report</a>
+            </div>
+        </div>
+    </li>
+
     <!-- Reservation -->
     <li class="nav-item">
         <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseReservation" aria-expanded="true"
             aria-controls="collapseReservation">
-            <i class="fas fa-fw fa-cog"></i>
+            <i class="fas fa-fw fa-calendar-check"></i>
             <span>Reservation</span>
         </a>
         <div id="collapseReservation" class="collapse" aria-labelledby="headingReservation" data-parent="#accordionSidebar">
@@ -78,18 +96,17 @@ $sidebar_website_name = !empty($current_branding['website_name']) ? $current_bra
     <li class="nav-item">
         <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseCart" aria-expanded="true"
             aria-controls="collapseCart">
-            <i class="fas fa-fw fa-cog"></i>
+            <i class="fas fa-fw fa-shopping-cart"></i>
             <span>Cart</span>
         </a>
         <div id="collapseCart" class="collapse" aria-labelledby="headingCart" data-parent="#accordionSidebar">
             <div class="bg-white py-2 collapse-inner rounded">
                 <a class="collapse-item" href="/resturant-management-system/cart/cart.php">Cart</a>
-                
             </div>
         </div>
     </li>
 
-    <!-- Tax -->
+    <!-- Tax 
     <li class="nav-item">
         <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTax" aria-expanded="true"
             aria-controls="collapseTax">
@@ -100,6 +117,36 @@ $sidebar_website_name = !empty($current_branding['website_name']) ? $current_bra
             <div class="bg-white py-2 collapse-inner rounded">
                 <a class="collapse-item" href="/resturant-management-system/tax/tax_add.php">Add Tax</a>
                 <a class="collapse-item" href="/resturant-management-system/tax/tax_list.php">Tax Table</a>
+            </div>
+        </div>
+    </li>-->
+
+    <!-- Stock -->
+    <li class="nav-item">
+        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseStock" aria-expanded="true"
+            aria-controls="collapseStock">
+            <i class="fas fa-fw fa-boxes"></i>
+            <span>Stock</span>
+        </a>
+        <div id="collapseStock" class="collapse" aria-labelledby="headingStock" data-parent="#accordionSidebar">
+            <div class="bg-white py-2 collapse-inner rounded">
+                <a class="collapse-item" href="/resturant-management-system/stock/stock_list.php">Stock List</a>
+                <a class="collapse-item" href="/resturant-management-system/stock/stock_report.php">Stock Report</a>
+            </div>
+        </div>
+    </li>
+
+    <!--Dinning Tables -->
+    <li class="nav-item">
+        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTable" aria-expanded="true"
+            aria-controls="collapseTable">
+            <i class="fas fa-fw fa-table"></i>
+            <span>Tables</span>
+        </a>
+        <div id="collapseTable" class="collapse" aria-labelledby="headingTable" data-parent="#accordionSidebar">
+            <div class="bg-white py-2 collapse-inner rounded">
+                <a class="collapse-item" href="/resturant-management-system/table/table_add.php">Add Table</a>
+                <a class="collapse-item" href="/resturant-management-system/table/table_list.php">Tables</a>
             </div>
         </div>
     </li>
@@ -119,33 +166,18 @@ $sidebar_website_name = !empty($current_branding['website_name']) ? $current_bra
         </div>
     </li>
 
-    <!-- Stock -->
+    <!-- User Activity Log-->
     <li class="nav-item">
-        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseStock" aria-expanded="true"
-            aria-controls="collapseStock">
-            <i class="fas fa-fw fa-boxes"></i>
-            <span>Stock</span>
-        </a>
-        <div id="collapseStock" class="collapse" aria-labelledby="headingStock" data-parent="#accordionSidebar">
-            <div class="bg-white py-2 collapse-inner rounded">
-                <a class="collapse-item" href="/resturant-management-system/stock/stock_list.php">Stock List</a>
-            </div>
-        </div>
+        <a class="nav-link" href="/resturant-management-system/user_activity/user_activity.php">
+            <i class="fas fa-fw fa-history"></i>
+            <span>User Activity Log</span></a>
     </li>
 
-    <!--Dinning Tables -->
+    <!-- Nav Item - Branding -->
     <li class="nav-item">
-        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTable" aria-expanded="true"
-            aria-controls="collapseTable">
-            <i class="fas fa-fw fa-table"></i>
-            <span>Tables</span>
-        </a>
-        <div id="collapseTable" class="collapse" aria-labelledby="headingTable" data-parent="#accordionSidebar">
-            <div class="bg-white py-2 collapse-inner rounded">
-                <a class="collapse-item" href="/resturant-management-system/table/table_add.php">Add Table</a>
-                <a class="collapse-item" href="/resturant-management-system/table/table_list.php">Tables</a>
-            </div>
-        </div>
+        <a class="nav-link" href="/resturant-management-system/branding/branding.php">
+            <i class="fas fa-fw fa-cog"></i>
+            <span>branding</span></a>
     </li>
 
     <!-- Divider -->

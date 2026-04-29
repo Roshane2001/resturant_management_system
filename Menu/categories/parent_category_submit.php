@@ -1,4 +1,5 @@
 <?php
+session_start();
 include('../../include/dbconnection.php');
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -28,6 +29,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $stmt->bind_param("s", $parent_category_name);
 
     if ($stmt->execute()) {
+        // Log user activity
+        $user_id = $_SESSION['uid'];
+        $activity_desc = "Added new parent category: " . $parent_category_name;
+        $log_sql = "INSERT INTO tbluser_activity (UserID, Activity, ActivityTime) VALUES (?, ?, NOW())";
+        $log_stmt = mysqli_prepare($con, $log_sql);
+        if ($log_stmt) {
+            mysqli_stmt_bind_param($log_stmt, "is", $user_id, $activity_desc);
+            mysqli_stmt_execute($log_stmt);
+            mysqli_stmt_close($log_stmt);
+        }
         echo 'yes';
     } else {
         echo 'Error: ' . $stmt->error;

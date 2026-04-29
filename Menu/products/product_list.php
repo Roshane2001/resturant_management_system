@@ -1,6 +1,12 @@
  <?php
-
+session_start();
 include('../../include/dbconnection.php');
+
+if (empty($_SESSION['uid'])) {
+    header('location:../auth/login.php');
+    exit;
+}
+
 ?>
  <!DOCTYPE html>
  <html lang="en">
@@ -9,7 +15,7 @@ include('../../include/dbconnection.php');
 
      <title>RMS - Product List</title>
      <?php include_once('../../include/header.php'); ?>
-     <link href="/resturant-management-system/vendor/datatables/dataTables.bootstrap4.min.css" rel="stylesheet">
+     
  </head>
 
  <body id="page-top">

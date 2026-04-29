@@ -4,12 +4,16 @@ $daily_query = mysqli_query($con, "SELECT
     COUNT(*) as order_count, 
     SUM(TotalAmount) as total, 
     SUM(ServiceCharge) as sc_total,
+    SUM(DamageClaim) as claim_total,
+    SUM(CASE WHEN DamageClaim > 0 THEN 1 ELSE 0 END) as claim_count,
     SUM(CASE WHEN OrderType LIKE '%Dine%' THEN 1 ELSE 0 END) as dine_in_count,
     SUM(CASE WHEN OrderType LIKE '%Take%' THEN 1 ELSE 0 END) as take_away_count
     FROM tblorder WHERE DATE(OrderDate) = '$today' AND Status = 'Paid'");
 $daily_row = mysqli_fetch_assoc($daily_query);
 $daily_income = $daily_row['total'] ? $daily_row['total'] : 0;
 $daily_sc = $daily_row['sc_total'] ? $daily_row['sc_total'] : 0;
+$daily_claims = $daily_row['claim_count'] ? $daily_row['claim_count'] : 0;
+$daily_claims_total = $daily_row['claim_total'] ? $daily_row['claim_total'] : 0;
 $daily_orders = $daily_row['order_count'];
 $daily_dine_in = $daily_row['dine_in_count'] ? $daily_row['dine_in_count'] : 0;
 $daily_take_away = $daily_row['take_away_count'] ? $daily_row['take_away_count'] : 0;

@@ -1,5 +1,11 @@
 <?php
+session_start();
 include('../../include/dbconnection.php');
+
+if (empty($_SESSION['uid'])) {
+    header('location:../auth/login.php');
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
