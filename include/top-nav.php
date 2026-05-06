@@ -39,10 +39,10 @@
                     <i class="fas fa-cogs fa-sm fa-fw mr-2 text-gray-400"></i>
                     Settings
                 </a>
-                <a class="dropdown-item" href="/resturant-management-system/user_activity/user_activity.php">
+                <!--<a class="dropdown-item" href="/resturant-management-system/user_activity/user_activity.php">
                     <i class="fas fa-list fa-sm fa-fw mr-2 text-gray-400"></i>
                     Activity Log
-                </a>
+                </a>-->
                 </a>
                 <div class="dropdown-divider"></div>
                 <a class="dropdown-item" href="/resturant-management-system/auth/logout.php">

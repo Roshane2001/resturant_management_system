@@ -6,10 +6,6 @@ if (empty($_SESSION['uid'])) {
     header('location:../auth/login.php');
     exit;
 }
-
-// Fetch roles from the database
-$roles_sql = "SELECT role_name FROM tblrole ORDER BY role_name ASC";
-$roles_result = mysqli_query($con, $roles_sql);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -55,7 +51,7 @@ $roles_result = mysqli_query($con, $roles_sql);
                                 </div>
                                 <div class="form-group">
                                     <label for="table_chairs">Chair Count</label>
-                                    <input type="text" class="form-control" id="table_chairs" name="table_chairs" required>
+                                    <input type="number" class="form-control" id="table_chairs" name="table_chairs" min="1" required>
                                 </div>                                
                                 <button type="submit" class="btn btn-primary">Add Table</button>
                             </form>

@@ -11,9 +11,23 @@ if (empty($_SESSION['uid'])) {
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['order_id']) && isset($_POST['items'])) {
     $order_id = intval($_POST['order_id']);
+    $table_id = intval($_POST['table_id']); // Get table_id from POST
     $items = json_decode($_POST['items'], true);
     $inserted_ids = [];
     $orderTotalToAdd = 0;
+
+    // Fetch table name for logging
+    $table_name = 'Unknown Table';
+    if ($table_id > 0) {
+        $stmt_table = $con->prepare("SELECT TableName FROM tbltables WHERE ID = ?");
+        $stmt_table->bind_param("i", $table_id);
+        $stmt_table->execute();
+        $res_table = $stmt_table->get_result();
+        if ($table_data = $res_table->fetch_assoc()) {
+            $table_name = $table_data['TableName'];
+        }
+        $stmt_table->close();
+    }
 
     if ($order_id <= 0 || empty($items)) {
         echo json_encode(['status' => 'error', 'message' => 'Invalid data']);
@@ -62,6 +76,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['order_id']) && isset($
         $stmt_update->execute();
         $stmt_update->close();
 
+        // Log user activity
+        $user_id = $_SESSION['uid'];
+        $waiter_name = $_SESSION['name'] ?? 'Unknown Waitor';
+        $activity_desc = "Waitor (" . htmlspecialchars($waiter_name) . ") placed a new Order #" . $order_id . 
+                         " for Table " . htmlspecialchars($table_name) . " (KOT: " . $kot_num . ", " . 
+                         count($items) . " items, Total: $" . number_format($orderTotalToAdd, 2) . ")";
+        $log_sql = "INSERT INTO tbluser_activity (UserID, Activity, ActivityTime) VALUES (?, ?, NOW())";
+        if ($log_stmt = $con->prepare($log_sql)) {
+            $log_stmt->bind_param("is", $user_id, $activity_desc);
+            $log_stmt->execute();
+            $log_stmt->close();
+        }
         mysqli_commit($con);
         echo json_encode(['status' => 'success', 'ids' => $inserted_ids, 'kot_num' => $kot_num]);
     } catch (Exception $e) {

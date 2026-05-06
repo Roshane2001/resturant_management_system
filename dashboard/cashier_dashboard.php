@@ -2,8 +2,8 @@
 session_start();
 include('../include/dbconnection.php');
 
-// Check if user is logged in and is an Admin
-if (empty($_SESSION['uid']) || $_SESSION['role'] !== 'Admin') {
+// Check if user is logged in and is a Cashier
+if (empty($_SESSION['uid']) || $_SESSION['role'] !== 'Cashier') {
     header('location:../auth/login.php');
     exit;
 }
@@ -16,7 +16,7 @@ include('fetch_daily_earning.php');
 
 <head>
 
-    <title>RMS - Admin Dashboard</title>
+    <title>RMS - Cashier Dashboard</title>
     <?php include_once('../include/header.php'); ?>
 </head>
 
@@ -47,7 +47,7 @@ include('fetch_daily_earning.php');
                     <div class="row">
 
                         <!-- Earnings (Daily) Card Example -->
-                        <div class="col-xl-3 col-md-6 mb-4">
+                        <!--<div class="col-xl-3 col-md-6 mb-4">
                             <div class="card border-left-primary shadow h-100 py-2">
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
@@ -63,26 +63,7 @@ include('fetch_daily_earning.php');
                                     </div>
                                 </div>
                             </div>
-                        </div>
-
-                        <!-- Service Charge (Daily) Card Example -->
-                        <div class="col-xl-3 col-md-6 mb-4">
-                            <div class="card border-left-success shadow h-100 py-2">
-                                <div class="card-body">
-                                    <div class="row no-gutters align-items-center">
-                                        <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                                Service Charge (Daily)</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                                <?php echo number_format($daily_sc, 2); ?></div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        </div>-->
 
                         <!-- Number of Orders day Example -->
                         <div class="col-xl-3 col-md-6 mb-4">
@@ -102,6 +83,44 @@ include('fetch_daily_earning.php');
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Service Charge (Daily) Card Example -->
+                        <!--<div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card border-left-success shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                                Service Charge (Daily)</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                <?php echo number_format($daily_sc, 2); ?></div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>-->
+
+                        <!-- Today Claims Card -->
+                        <!-- <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card border-left-success shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                                Today Claims (Qty / Amount)</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                <?php echo $daily_claims . " / " . number_format($daily_claims_total, 2); ?></div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-file-invoice-dollar fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>-->
 
                         <!-- Number of Orders day Dine in and Takeaway Example -->
                         <div class="col-xl-3 col-md-6 mb-4">
@@ -166,7 +185,7 @@ include('fetch_daily_earning.php');
                     <!-- Content Row -->
                     <div class="row">
                         <!-- Today Claims Card -->
-                        <div class="col-xl-3 col-md-6 mb-4">
+                        <!--<div class="col-xl-3 col-md-6 mb-4">
                             <div class="card border-left-success shadow h-100 py-2">
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
@@ -182,7 +201,7 @@ include('fetch_daily_earning.php');
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </div>-->
                     </div>
 
 

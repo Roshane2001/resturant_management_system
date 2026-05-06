@@ -108,6 +108,14 @@ if (empty($_SESSION['uid'])) {
                              <input type="number" class="form-control" id="edit_table_chairs" name="table_chairs"
                                  required>
                          </div>
+                         <div class="form-group">
+                             <label for="edit_table_status">Table Status</label>
+                             <select class="form-control" id="edit_table_status" name="table_status" required>
+                                 <option value="0">Available</option>
+                                 <option value="1">Reserved</option>
+                                 <option value="2">Seated</option>
+                             </select>
+                         </div>
                      </form>
                  </div>
                  <div class="modal-footer">
@@ -215,6 +223,7 @@ if (empty($_SESSION['uid'])) {
                      $('#edit_table_id').val(response.ID);
                      $('#edit_table_name').val(response.TableName);
                      $('#edit_table_chairs').val(response.ChairCount);
+                     $('#edit_table_status').val(response.Status);
 
                      $('#editTableModal').modal('show');
                  } else {

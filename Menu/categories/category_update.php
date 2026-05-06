@@ -50,11 +50,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $activity_desc = "Updated sub-category: " . $old_name . $change_str;
         
         $log_sql = "INSERT INTO tbluser_activity (UserID, Activity, ActivityTime) VALUES (?, ?, NOW())";
-        $log_stmt = mysqli_prepare($con, $log_sql);
-        if ($log_stmt) {
-            mysqli_stmt_bind_param($log_stmt, "is", $user_id, $activity_desc);
-            mysqli_stmt_execute($log_stmt);
-            mysqli_stmt_close($log_stmt);
+        if ($log_stmt = $con->prepare($log_sql)) {
+            $log_stmt->bind_param("is", $user_id, $activity_desc);
+            $log_stmt->execute();
+            $log_stmt->close();
         }
 
         echo 'yes';

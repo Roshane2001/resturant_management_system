@@ -25,7 +25,7 @@ $order_query = mysqli_query($con, "SELECT o.ID, t.TableName, o.OrderDate, o.Orde
 $order = mysqli_fetch_assoc($order_query);
 
  // Fetch Items
-$items_query = mysqli_query($con, "SELECT d.Qty, d.Price, p.ProductName, s.StaffName FROM tblorder_details d LEFT JOIN tblproducts p ON d.ProductID = p.ID LEFT JOIN tblstaff s ON d.staff_id = s.ID WHERE d.ID IN ($ids_query_part)");
+$items_query = mysqli_query($con, "SELECT d.Qty, d.Price, p.ProductName, s.StaffName FROM tblorder_details d LEFT JOIN tblproducts p ON d.ProductID = p.ID LEFT JOIN tblstaff s ON d.staff_id = s.ID WHERE d.OrderID = $order_id AND d.ID IN ($ids_query_part)");
 
 $order_items = [];
 $waiter_name = 'Staff';

@@ -6,21 +6,36 @@ include('fetch_logo.php');
 
 if(isset($_POST['login']))
 {
-    $username = mysqli_real_escape_string($con, $_POST['username']);
-    $password = mysqli_real_escape_string($con, $_POST['password']);
-    
-    $query = mysqli_query($con, "SELECT ID, StaffName, StaffRole, Password FROM tblstaff WHERE UserName='$username'");
-    $ret = mysqli_fetch_array($query);
-    
-    if($ret > 0){
+    $username = $_POST['username'];
+    $password = $_POST['password'];
+
+    $stmt = $con->prepare("SELECT ID, StaffName, StaffRole, Password FROM tblstaff WHERE UserName = ?");
+    $stmt->bind_param("s", $username);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $ret = $result->fetch_assoc();
+    $stmt->close();
+
+    if($ret){
         if(password_verify($password, $ret['Password'])){
             $_SESSION['uid'] = $ret['ID'];
             $_SESSION['name'] = $ret['StaffName'];
             $_SESSION['role'] = $ret['StaffRole'];
+
+            // Log successful login activity
+            $user_id = $_SESSION['uid'];
+            $activity_desc = "Logged in as " . $ret['StaffRole'];
+            $log_sql = "INSERT INTO tbluser_activity (UserID, Activity, ActivityTime) VALUES (?, ?, NOW())";
+            if ($log_stmt = $con->prepare($log_sql)) {
+                $log_stmt->bind_param("is", $user_id, $activity_desc);
+                $log_stmt->execute();
+                $log_stmt->close();
+            }
+
             if ($ret['StaffRole'] == 'Admin') {
                 header('location:../dashboard/admin_dashboard.php');
             } elseif ($ret['StaffRole'] == 'Cashier') {
-                header('location:../dashboard/admin_dashboard.php');
+                header('location:../dashboard/cashier_dashboard.php');
             } elseif ($ret['StaffRole'] == 'Waitor') {
                 header('location:../waitor/waitor.php');
             } else {

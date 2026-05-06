@@ -1,32 +1,38 @@
 <?php
+session_start();
 include('../../include/dbconnection.php');
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    if (isset($_POST['id']) && isset($_POST['status'])) {
-        $id = $_POST['id'];
-        $status = $_POST['status'];
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['id'])) {
+    $id = intval($_POST['id']);
+    $status = intval($_POST['status']);
 
-        // Validate status
-        if ($status != 0 && $status != 1) {
-            echo 'Invalid status value.';
-            exit;
+    // Fetch name
+    $stmt_name = $con->prepare("SELECT ProductName FROM tblproducts WHERE ID = ?");
+    $stmt_name->bind_param("i", $id);
+    $stmt_name->execute();
+    $res = $stmt_name->get_result()->fetch_assoc();
+    $product_name = $res['ProductName'] ?? 'Unknown';
+    $stmt_name->close();
+
+    $stmt = $con->prepare("UPDATE tblproducts SET Status = ? WHERE ID = ?");
+    $stmt->bind_param("ii", $status, $id);
+
+    if ($stmt->execute()) {
+        // Log activity
+        $user_id = $_SESSION['uid'];
+        $status_txt = ($status == 1) ? "Activated" : "Deactivated";
+        $activity_desc = "$status_txt product: " . $product_name;
+        
+        $log_sql = "INSERT INTO tbluser_activity (UserID, Activity, ActivityTime) VALUES (?, ?, NOW())";
+        if ($log_stmt = mysqli_prepare($con, $log_sql)) {
+            mysqli_stmt_bind_param($log_stmt, "is", $user_id, $activity_desc);
+            mysqli_stmt_execute($log_stmt);
+            mysqli_stmt_close($log_stmt);
         }
-
-        // Using prepared statements to prevent SQL injection
-        $stmt = $con->prepare("UPDATE tblproducts SET Status = ? WHERE ID = ?");
-        $stmt->bind_param("ii", $status, $id);
-
-        if ($stmt->execute()) {
-            echo 'success';
-        } else {
-            echo 'Error: ' . htmlspecialchars($stmt->error);
-        }
-        $stmt->close();
-        $con->close();
+        echo 'success';
     } else {
-        echo 'Invalid parameters provided.';
+        echo 'Error updating status.';
     }
-} else {
-    echo 'Invalid request method.';
+    $con->close();
 }
 ?>

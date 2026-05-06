@@ -35,6 +35,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
     $check_stmt->close();
 
+    // Fetch current details for activity logging
+    $stmt_old = $con->prepare("SELECT * FROM tblstaff WHERE ID = ?");
+    $stmt_old->bind_param("i", $staff_id);
+    $stmt_old->execute();
+    $res_old = $stmt_old->get_result();
+    $old_data = $res_old->fetch_assoc();
+    $old_name = $old_data['StaffName'] ?? 'Unknown';
+    $stmt_old->close();
+
+    // Track specific changes for logging
+    $changes = [];
+    if (($old_data['StaffName'] ?? '') != $staff_name) $changes[] = "Name";
+    if (($old_data['StaffNIC'] ?? '') != $staff_nic) $changes[] = "NIC";
+    if (($old_data['StaffTel'] ?? '') != $staff_telephone) $changes[] = "Telephone";
+    if (($old_data['StaffRole'] ?? '') != $staff_role) $changes[] = "Role";
+    if (($old_data['UserName'] ?? '') != $staff_username) $changes[] = "Username";
+    if (!empty($staff_password)) $changes[] = "Password";
+
     // Prepare the update query
     if (!empty($staff_password)) {
         // If password is being updated
@@ -48,6 +66,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     if ($stmt->execute()) {
+        // Log user activity
+        $user_id = $_SESSION['uid'];
+        $change_list = !empty($changes) ? " (" . implode(', ', $changes) . ")" : "";
+        $activity_desc = "Updated staff member details for: " . $old_name . $change_list;
+        $log_sql = "INSERT INTO tbluser_activity (UserID, Activity, ActivityTime) VALUES (?, ?, NOW())";
+        if ($log_stmt = $con->prepare($log_sql)) {
+            $log_stmt->bind_param("is", $user_id, $activity_desc);
+            $log_stmt->execute();
+            $log_stmt->close();
+        }
+
         echo 'yes';
     } else {
         echo 'Something went wrong. Please try again. Error: ' . htmlspecialchars($stmt->error);

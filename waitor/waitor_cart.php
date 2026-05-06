@@ -11,6 +11,7 @@ if (empty($_SESSION['uid'])) {
 include('../cart/fetch_categories.php');
 
 $order_id = isset($_GET['order_id']) ? intval($_GET['order_id']) : 0;
+$table_id = isset($_GET['table_id']) ? intval($_GET['table_id']) : 0; // Get table_id from URL
 
 // Convert result set to array for multiple usage (PHP loop + JS JSON)
 $categories_list = [];
@@ -21,6 +22,19 @@ $categories = $categories_list;
 
 if (!isset($products_data)) {
     $products_data = [];
+}
+
+// Fetch existing order items for this order ID to display the bill list
+$existing_items = [];
+if ($order_id > 0) {
+    $stmt_existing = $con->prepare("SELECT od.*, p.ProductName FROM tblorder_details od JOIN tblproducts p ON od.ProductID = p.ID WHERE od.OrderID = ? ORDER BY od.ID DESC");
+    $stmt_existing->bind_param("i", $order_id);
+    $stmt_existing->execute();
+    $result_existing = $stmt_existing->get_result();
+    while ($row = $result_existing->fetch_assoc()) {
+        $existing_items[] = $row;
+    }
+    $stmt_existing->close();
 }
 ?>
 <!DOCTYPE html>
@@ -123,6 +137,50 @@ if (!isset($products_data)) {
                                     <button class="btn btn-success btn-block mt-3" id="place-order-btn">Confirm Order</button>
                                 </div>
                             </div>
+
+                            <!-- Existing Order Items Section (Bill Order List) -->
+                            <?php if ($order_id > 0): ?>
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">Bill Order List (#<?php echo $order_id; ?>)</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-sm" width="100%" cellspacing="0" style="font-size: 0.85rem;">
+                                            <thead>
+                                                <tr>
+                                                    <th>Item</th>
+                                                    <th>Qty</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="bill-order-list-body">
+                                                <?php if (!empty($existing_items)): ?>
+                                                    <?php foreach ($existing_items as $item): ?>
+                                                    <tr>
+                                                        <td class="align-middle"><?php echo htmlspecialchars($item['ProductName']); ?></td>
+                                                        <td class="align-middle text-center"><?php echo $item['Qty']; ?></td>
+                                                        <td class="text-center">
+                                                            <?php 
+                                                            $status = $item['order_status'];
+                                                            if ($status == 0) echo '<span class="badge badge-secondary">Sent</span>';
+                                                            else if ($status == 1) echo '<span class="badge badge-info">Cooking</span>';
+                                                            else if ($status == 2) echo '<span class="badge badge-success">Ready</span>';
+                                                            else if ($status == 3) echo '<span class="badge badge-primary">Served</span>';
+                                                            else echo '<span class="badge badge-dark">Unknown</span>';
+                                                            ?>
+                                                        </td>
+                                                    </tr>
+                                                    <?php endforeach; ?>
+                                                <?php else: ?>
+                                                    <tr><td colspan="3" class="text-center text-muted">No items sent yet</td></tr>
+                                                <?php endif; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -220,6 +278,7 @@ if (!isset($products_data)) {
                     type: 'POST',
                     data: {
                         order_id: orderId,
+                        table_id: <?php echo $table_id; ?>, // Pass table_id to backend
                         items: JSON.stringify(window.orderItems)
                     },
                     dataType: 'json',
@@ -237,14 +296,13 @@ if (!isset($products_data)) {
                             iframe.src = 'print_kot.php?order_id=' + orderId + '&ids=' + ids + '&kot_num=' + kot_num;
                             document.body.appendChild(iframe);
 
-                            // Redirect after print (JS pauses during print dialog in most browsers)
-                            setTimeout(function() {
-                                window.location.href = 'waitor.php';
-                            }, 1000);
+                            // Update the bill list dynamically
+                            updateBillOrderList();
+                            Swal.fire("Success", "Order placed and KOT printed!", "success");
                         } else {
                             Swal.fire("Error", "Failed to place order: " + response.message, "error");
-                            $btn.prop('disabled', false).text('Confirm Order');
                         }
+                        $btn.prop('disabled', false).text('Confirm Order');
                     },
                     error: function(xhr, status, error) {
                         console.error(xhr.responseText);
@@ -252,6 +310,46 @@ if (!isset($products_data)) {
                     }
                 });
             });
+
+            window.updateBillOrderList = function() {
+                var orderId = <?php echo $order_id; ?>;
+                if (orderId === 0) return;
+
+                $.ajax({
+                    url: '../cart/get_order_details.php',
+                    type: 'GET',
+                    data: { order_id: orderId },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            var tbody = $('#bill-order-list-body');
+                            tbody.empty();
+                            
+                            if (response.items.length > 0) {
+                                response.items.sort((a, b) => b.detail_id - a.detail_id).forEach(function(item) {
+                                    var statusBadge = '<span class="badge badge-dark">Unknown</span>';
+                                    if (item.order_status == 0) statusBadge = '<span class="badge badge-secondary">Sent</span>';
+                                    else if (item.order_status == 1) statusBadge = '<span class="badge badge-info">Cooking</span>';
+                                    else if (item.order_status == 2) statusBadge = '<span class="badge badge-success">Ready</span>';
+                                    else if (item.order_status == 3) statusBadge = '<span class="badge badge-primary">Served</span>';
+
+                                    var row = `<tr>
+                                        <td class="align-middle">${item.name}</td>
+                                        <td class="align-middle text-center">${item.qty}</td>
+                                        <td class="text-center">${statusBadge}</td>
+                                    </tr>`;
+                                    tbody.append(row);
+                                });
+                            } else {
+                                tbody.append('<tr><td colspan="3" class="text-center text-muted">No items sent yet</td></tr>');
+                            }
+                        }
+                    },
+                    error: function() {
+                        console.error("Failed to refresh bill order list.");
+                    }
+                });
+            };
 
             window.updateQty = function(index, val) {
                 var newQty = parseInt(val);
@@ -320,7 +418,7 @@ if (!isset($products_data)) {
                             html += '<div class="card shadow h-100 py-2 border-left-primary product-btn" ' + opacity + ' ' + clickHandler + '>';
                             html += '<div class="card-body text-center p-2">';
                             html += '<h6 class="font-weight-bold text-gray-800 mb-1">' + product.ProductName + stockLabel + '</h6>';
-                            html += '<div class="h5 mb-0 font-weight-bold text-primary">$' + parseFloat(product.Price).toFixed(2) + '</div>';
+                            html += '<div class="h5 mb-0 font-weight-bold text-primary">Rs.' + parseFloat(product.Price).toFixed(2) + '</div>';
                             html += '</div></div></div>';
                         });
                     }
@@ -358,6 +456,9 @@ if (!isset($products_data)) {
 
             // Initial render
             renderItems();
+
+            // Auto-refresh the list every 10 seconds to catch status updates from the kitchen
+            setInterval(updateBillOrderList, 10000);
         });
     </script>
 

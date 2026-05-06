@@ -16,13 +16,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         exit;
     }
 
-    // Get product name for the activity log
-    $stmt_name = $con->prepare("SELECT ProductName FROM tblproducts WHERE ID = ?");
+    // Get current details for the activity log
+    $stmt_name = $con->prepare("SELECT ProductName, Quantity FROM tblproducts WHERE ID = ?");
     $stmt_name->bind_param("i", $product_id);
     $stmt_name->execute();
     $res_name = $stmt_name->get_result();
     $product = $res_name->fetch_assoc();
     $product_name = $product['ProductName'] ?? 'Unknown Product';
+    $old_qty = $product['Quantity'] ?? 0;
     $stmt_name->close();
 
     // Update details in tblproducts
@@ -32,15 +33,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if ($stmt_prod->execute()) {
         $stmt_prod->close();
 
+        $new_qty = $old_qty + $quantity;
         // Log user activity for the stock update
         $user_id = $_SESSION['uid'];
-        $activity_desc = "Added $quantity units to stock for product: $product_name";
+        $activity_desc = "Stock Update: Added $quantity units to $product_name. (Total: $new_qty)";
         $log_sql = "INSERT INTO tbluser_activity (UserID, Activity, ActivityTime) VALUES (?, ?, NOW())";
-        $log_stmt = mysqli_prepare($con, $log_sql);
-        if ($log_stmt) {
-            mysqli_stmt_bind_param($log_stmt, "is", $user_id, $activity_desc);
-            mysqli_stmt_execute($log_stmt);
-            mysqli_stmt_close($log_stmt);
+        if ($log_stmt = $con->prepare($log_sql)) {
+            $log_stmt->bind_param("is", $user_id, $activity_desc);
+            $log_stmt->execute();
+            $log_stmt->close();
         }
 
         echo 'yes';

@@ -35,6 +35,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $stmt->bind_param("si", $table_name, $table_chairs);
 
     if ($stmt->execute()) {
+        // Log user activity
+        $user_id = $_SESSION['uid'];
+        $activity_desc = "Added new table: Table " . $table_name . " (" . $table_chairs . " chairs)";
+        $log_sql = "INSERT INTO tbluser_activity (UserID, Activity, ActivityTime) VALUES (?, ?, NOW())";
+        
+        if ($log_stmt = $con->prepare($log_sql)) {
+            $log_stmt->bind_param("is", $user_id, $activity_desc);
+            $log_stmt->execute();
+            $log_stmt->close();
+        }
+
         echo 'yes';
     } else {
         echo 'Something went wrong. Please try again. Error: ' . htmlspecialchars($stmt->error);

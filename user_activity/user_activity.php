@@ -61,10 +61,15 @@ if (empty($_SESSION['uid'])) {
                                             while($act = mysqli_fetch_assoc($activity_result)) {
                                                 $activity = $act['Activity'];
                                                 $badge_class = 'badge-secondary';
-                                                if (strpos($activity, 'Stock') !== false) $badge_class = 'badge-info';
-                                                if (strpos($activity, 'branding') !== false) $badge_class = 'badge-primary';
-                                                if (strpos($activity, 'product') !== false) $badge_class = 'badge-success';
-                                                if (strpos($activity, 'category') !== false) $badge_class = 'badge-warning';
+                                                if (stripos($activity, 'Stock') !== false) $badge_class = 'badge-info';
+                                                else if (stripos($activity, 'branding') !== false) $badge_class = 'badge-primary';
+                                                else if (stripos($activity, 'product') !== false) $badge_class = 'badge-success';
+                                                else if (stripos($activity, 'category') !== false) $badge_class = 'badge-warning';
+                                                else if (stripos($activity, 'staff') !== false || stripos($activity, 'profile') !== false) $badge_class = 'badge-danger';
+                                                else if (stripos($activity, 'table') !== false) $badge_class = 'badge-dark';
+                                                else if (stripos($activity, 'Logged in') !== false) $badge_class = 'badge-primary';
+                                                else if (stripos($activity, 'Logged out') !== false) $badge_class = 'badge-secondary';
+                                                else if (stripos($activity, 'Order') !== false || stripos($activity, 'Waiter') !== false || stripos($activity, 'Waitor') !== false) $badge_class = 'badge-info';
                                                 
                                                 echo "<tr>
                                                         <td class='font-weight-bold'>".htmlspecialchars($act['StaffName'] ?? 'Unknown User')."</td>
@@ -72,7 +77,7 @@ if (empty($_SESSION['uid'])) {
                                                             <span class='badge $badge_class mr-2'>&nbsp;</span>
                                                             ".htmlspecialchars($activity)."
                                                         </td>
-                                                        <td>".date('Y-m-d h:i A', strtotime($act['ActivityTime']))."</td>
+                                                        <td data-order='".strtotime($act['ActivityTime'])."'>".date('Y-m-d h:i A', strtotime($act['ActivityTime']))."</td>
                                                       </tr>";
                                             }
                                         } else {

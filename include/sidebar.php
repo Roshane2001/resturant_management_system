@@ -6,10 +6,14 @@ $sidebar_website_name = !empty($current_branding['website_name']) ? $current_bra
 
 // Determine the correct dashboard link based on the user's session role
 $dashboard_link = "/resturant-management-system/"; // Default link if no role or unknown role
+$role = $_SESSION['role'] ?? '';
+
 if (isset($_SESSION['role'])) {
-    if ($_SESSION['role'] === 'Waitor') {
+    if ($role === 'Waitor') {
         $dashboard_link = "/resturant-management-system/waitor/waitor.php";
-    } else { // Admin or Cashier
+    } elseif ($role === 'Cashier') {
+        $dashboard_link = "/resturant-management-system/dashboard/cashier_dashboard.php";
+    } else { // Admin
         $dashboard_link = "/resturant-management-system/dashboard/admin_dashboard.php";
     }
 }
@@ -35,11 +39,12 @@ if (isset($_SESSION['role'])) {
 
     <!-- Nav Item - Dashboard -->
     <li class="nav-item">
-        <a class="nav-link" href="/resturant-management-system/dashboard/admin_dashboard.php">
+        <a class="nav-link" href="<?php echo $dashboard_link; ?>">
             <i class="fas fa-fw fa-tachometer-alt"></i>
             <span>Dashboard</span></a>
     </li>
     
+    <?php if ($role === 'Admin' || $role === 'Cashier'): ?>
     <!-- Menus -->
     <li class="nav-item">
         <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseMenus" aria-expanded="true"
@@ -72,11 +77,15 @@ if (isset($_SESSION['role'])) {
         <div id="collapseReports" class="collapse" aria-labelledby="headingReports" data-parent="#accordionSidebar">
             <div class="bg-white py-2 collapse-inner rounded">
                 <a class="collapse-item" href="/resturant-management-system/reports/income_report.php">Income Report</a>
+                <?php if ($role === 'Admin'): ?>
                 <a class="collapse-item" href="/resturant-management-system/reports/monthly_report.php">Monthly Report</a>
+                <?php endif; ?>
             </div>
         </div>
     </li>
+    <?php endif; ?>
 
+    <?php if ($role === 'Admin' || $role === 'Cashier'): ?>
     <!-- Reservation -->
     <li class="nav-item">
         <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseReservation" aria-expanded="true"
@@ -105,21 +114,7 @@ if (isset($_SESSION['role'])) {
             </div>
         </div>
     </li>
-
-    <!-- Tax 
-    <li class="nav-item">
-        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTax" aria-expanded="true"
-            aria-controls="collapseTax">
-            <i class="fas fa-fw fa-cog"></i>
-            <span>Tax</span>
-        </a>
-        <div id="collapseTax" class="collapse" aria-labelledby="headingTax" data-parent="#accordionSidebar">
-            <div class="bg-white py-2 collapse-inner rounded">
-                <a class="collapse-item" href="/resturant-management-system/tax/tax_add.php">Add Tax</a>
-                <a class="collapse-item" href="/resturant-management-system/tax/tax_list.php">Tax Table</a>
-            </div>
-        </div>
-    </li>-->
+    
 
     <!-- Stock -->
     <li class="nav-item">
@@ -165,13 +160,15 @@ if (isset($_SESSION['role'])) {
             </div>
         </div>
     </li>
+    <?php endif; ?>
 
+    <?php if ($role === 'Admin'): ?>
     <!-- User Activity Log-->
-    <li class="nav-item">
+    <!--<li class="nav-item">
         <a class="nav-link" href="/resturant-management-system/user_activity/user_activity.php">
             <i class="fas fa-fw fa-history"></i>
             <span>User Activity Log</span></a>
-    </li>
+    </li>-->
 
     <!-- Nav Item - Branding -->
     <li class="nav-item">
@@ -179,6 +176,7 @@ if (isset($_SESSION['role'])) {
             <i class="fas fa-fw fa-cog"></i>
             <span>branding</span></a>
     </li>
+    <?php endif; ?>
 
     <!-- Divider -->
     <hr class="sidebar-divider">

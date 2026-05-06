@@ -38,6 +38,15 @@ if (isset($_POST['submit'])) {
         if ($stmt->execute()) {
             $message = '<div class="alert alert-success">Profile updated successfully.</div>';
             $_SESSION['name'] = $staff_name;
+
+            // Log user activity
+            $activity_desc = "Updated own profile details";
+            $log_sql = "INSERT INTO tbluser_activity (UserID, Activity, ActivityTime) VALUES (?, ?, NOW())";
+            if ($log_stmt = $con->prepare($log_sql)) {
+                $log_stmt->bind_param("is", $staff_id, $activity_desc);
+                $log_stmt->execute();
+                $log_stmt->close();
+            }
         } else {
             $message = '<div class="alert alert-danger">Error: ' . htmlspecialchars($stmt->error) . '</div>';
         }

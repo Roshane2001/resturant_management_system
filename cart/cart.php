@@ -16,6 +16,13 @@ foreach ($categories as $cat) {
     $cats[] = $cat;
 }
 
+// Fetch Parent Categories for JS
+$parent_categories_list = [];
+$pcat_query = mysqli_query($con, "SELECT * FROM tblparentcategory");
+while ($pcat_row = mysqli_fetch_assoc($pcat_query)) {
+    $parent_categories_list[] = $pcat_row;
+}
+
 // Fetch Service Charge
 include('fetch_service_charge.php');
 
@@ -91,19 +98,19 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
         .food-card { 
             height: 100px; 
             border-radius: 15px; 
-            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15); 
+            /*box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15); */
             color: white; 
             display: flex; 
             flex-direction: column; 
             justify-content: space-between; 
             padding: 12px; 
             cursor: pointer; 
-            transition: all 0.2s;
+            transition: all 0.1s;
             border: none;
             width: 100%;
             text-align: left;
             position: relative;
-            overflow: hidden;
+            overflow: visible;
         }
         .food-card:hover { transform: translateY(-3px); box-shadow: 0 0.5rem 2rem 0 rgba(58, 59, 69, 0.25); }
         .food-card:active { transform: scale(0.95); }
@@ -157,10 +164,18 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
                                         </button>
                                         <div class="dropdown-menu" id="tableSelectMenu" aria-labelledby="tableSelectDropdown">
                                             <?php
-                                            $tbl_query = mysqli_query($con, "SELECT t.ID, t.TableName, o.ID as OrderID FROM tbltables t JOIN tblorder o ON t.ID = o.TableID WHERE o.Status = 'Pending'");
+                                            $sql = "SELECT t.ID as TableID, t.TableName, o.ID as OrderID, o.OrderType 
+                                                    FROM tblorder o 
+                                                    LEFT JOIN tbltables t ON o.TableID = t.ID 
+                                                    WHERE o.Status = 'Pending' 
+                                                    ORDER BY o.ID DESC";
+                                            $tbl_query = mysqli_query($con, $sql);
+
                                             if (mysqli_num_rows($tbl_query) > 0) {
                                                 while ($tbl_row = mysqli_fetch_assoc($tbl_query)) {
-                                                    echo '<a class="dropdown-item" href="javascript:void(0)" onclick="selectTable(\'' . addslashes($tbl_row['TableName']) . '\', ' . $tbl_row['ID'] . ')">' . htmlspecialchars($tbl_row['TableName']) . ' - Bill #' . $tbl_row['OrderID'] . '</a>';
+                                                    $displayName = ($tbl_row['OrderType'] === 'Take-away') ? "Take Away #" . $tbl_row['OrderID'] : $tbl_row['TableName'];
+                                                    $tableId = $tbl_row['TableID'] ? $tbl_row['TableID'] : 0;
+                                                    echo '<a class="dropdown-item" href="javascript:void(0)" onclick="selectTable(\'' . addslashes($displayName) . '\', ' . $tableId . ', ' . $tbl_row['OrderID'] . ')">' . htmlspecialchars($displayName) . ' - Bill #' . $tbl_row['OrderID'] . '</a>';
                                                 }
                                             } else {
                                                 echo '<span class="dropdown-item text-muted">No pending tables</span>';
@@ -254,8 +269,8 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
                                         $isFirstParent = true;
                                         foreach ($parent_categories as $pcat) {
                                             $pid = $pcat['ID'];
-                                            $activeClass = $isFirstParent ? 'active' : '';
-                                            $ariaSelected = $isFirstParent ? 'true' : 'false';
+                                            $activeClass = $isFirstParent ? 'active' : ''; // Make the first parent active
+                                            $ariaSelected = $isFirstParent ? 'true' : 'false'; // Make the first parent active
                                             $pname = isset($pcat['ParentCategoryName']) ? htmlspecialchars($pcat['ParentCategoryName']) : 'Parent Category';
                                             echo "<li class='nav-item'>
                                                     <a class='nav-link $activeClass' id='parent-$pid-tab' data-toggle='pill' href='javascript:void(0)' onclick=\"filterSubCategories($pid)\" role='tab' aria-controls='parent-$pid' aria-selected='$ariaSelected'>$pname</a>
@@ -263,22 +278,27 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
                                             $isFirstParent = false;
                                         }
                                     }
+                                    // Add an "All Parent Categories" option
+                                    echo "<li class='nav-item'>
+                                            <a class='nav-link' id='parent-all-tab' data-toggle='pill' href='javascript:void(0)' onclick=\"filterSubCategories('all')\" role='tab' aria-controls='parent-all' aria-selected='false'>All Categories</a>
+                                          </li>";
                                     ?>
                                 </ul>
                             </div>
 
+                            
+
                             <!-- Menu Categories (Top Tabs) -->
                             <div class="menu-tabs">
                                 <ul class="nav nav-pills" id="pills-tab" role="tablist">
-                                    <!--  
-                                    <li class='nav-item sub-cat-item' data-parent-id='all' style="display: block;">
+                                    <li class='nav-item sub-cat-item' data-parent-id='all' style="display: none;">
                                         <a class='nav-link active' id='pills-all-tab' data-toggle='pill' href='#pills-all' role='tab' aria-controls='pills-all' aria-selected='true'>All Items</a>
-                                    </li>-->
+                                    </li>
                                     <?php 
                                     $first = false;
                                     if($cats) {
                                         foreach ($cats as $cat) {
-                                            $active = $first ? 'active' : '';
+                                            $active = ''; // No sub-category active by default, will be set by filterSubCategories
                                             $id = $cat['ID'];
                                             $parentId = isset($cat['ParentCategoryID']) ? $cat['ParentCategoryID'] : '';
                                             echo "<li class='nav-item sub-cat-item' data-parent-id='$parentId'>
@@ -296,7 +316,7 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
                             <div class="food-grid-container">
                                 <div class="tab-content" id="pills-tabContent">
                                     <?php 
-                                    $first = true;
+                                    // This section will be dynamically updated by renderItems, so we can simplify it.
                                     if($cats) {
                                         foreach ($cats as $index => $cat) {
                                             $catId = $cat['ID'];
@@ -304,33 +324,8 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
                                             $colorClass = 'cat-color-' . ($index % 5); // Cycle through colors
                                             
                                             echo "<div class='tab-pane fade $active' id='pills-$catId' role='tabpanel' aria-labelledby='pills-$catId-tab'>";
-                                            echo "<div class='row'>";
-                                            
-                                            if (isset($products_data[$catId])) {
-                                                foreach ($products_data[$catId] as $prod) {
-                                                    $pName = htmlspecialchars($prod['ProductName']);
-                                                    $pPrice = $prod['Price'];
-                                                    $pId = $prod['ID'];
-                                                    $pQty = $prod['Quantity'];
-                                                    $isOutOfStock = ($prod['Type'] === 'Countable' && $pQty <= 0);
-                                                    $clickAction = $isOutOfStock ? "" : "onclick='addToCart($pId, \"$pName\", $pPrice)'";
-                                                    $stockLabel = $isOutOfStock ? "<br><small class='badge badge-light text-danger'>Out of Stock</small>" : "";
-                                                    $opacity = $isOutOfStock ? "style='opacity: 0.6; cursor: not-allowed;'" : "";
-
-                                                    echo "
-                                                    <div class='col-xl-3 col-md-4 col-6 mb-3'>
-                                                        <div class='food-card $colorClass' $clickAction $opacity>
-                                                            <span class='item-name'>$pName $stockLabel</span>
-                                                            <span class='item-price'>$pPrice</span>
-                                                        </div>
-                                                    </div>";
-                                                }
-                                            } else {
-                                                echo "<div class='col-12 text-center text-gray-500 mt-4'>No items in this category</div>";
-                                            }
-                                            
-                                            echo "</div></div>";
-                                            $first = false;
+                                            echo "<div class='row' id='products-for-cat-$catId'></div>"; // Products will be loaded here by JS
+                                            echo "</div>";
                                         }
                                     }
                                     ?>
@@ -373,6 +368,8 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
     <?php include_once('../include/script.php'); ?>
 
     <script>
+        var productsData = <?php echo json_encode($products_data); ?>;
+        var categoriesList = <?php echo json_encode($cats); ?>;
         var current_staff_id = <?php echo intval($_SESSION['uid']); ?>;
         var serviceChargePercentage = <?php echo $service_charge_percentage; ?>;
         // Basic Clock
@@ -427,15 +424,22 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
                     const total = item.price * item.qty;
                     subtotal += total;
                     count += item.qty;
+                    // Only allow editing if item is new (undefined) or status is 0 (Pending)
+                    const canEdit = (item.order_status === undefined || item.order_status === 0);
                     html += `
                         <div class="order-item d-flex justify-content-between align-items-center">
                             <div style="flex:1">
                                 <div class="font-weight-bold text-gray-800">${item.name}</div>
                                 <div class="d-flex align-items-center mt-1">
                                     <small class="text-muted mr-2">${parseFloat(item.price).toFixed(2)}</small>
+                                    ${canEdit ? `
                                     <button class="btn btn-sm btn-light border py-0 px-2" onclick="updateItemQty(${index}, -1)">-</button>
                                     <input type="number" id="qty-${index}" class="form-control form-control-sm mx-2 text-center p-0" style="width: 45px; height: 25px;" value="${item.qty}" onchange="setQty(${index}, this.value)" onfocus="setActiveInput(this.id)">
                                     <button class="btn btn-sm btn-light border py-0 px-2" onclick="updateItemQty(${index}, 1)">+</button>
+                                    <button class="btn btn-sm btn-danger py-0 px-2 ml-2" onclick="removeItem(${index})"><i class="fas fa-trash"></i></button>
+                                    ` : `
+                                    <span class="badge badge-info">Printed (Qty: ${item.qty})</span>
+                                    `}
                                 </div>
                             </div>
                             <div class="font-weight-bold text-gray-800">${total.toFixed(2)}</div>
@@ -473,6 +477,51 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
             document.getElementById('discount').innerText = discountAmount.toFixed(2);
             document.getElementById('total-amount').innerText = total.toFixed(2);
         }
+
+        // Function to render products based on the active sub-category tab
+        window.renderItems = function() {
+            // Get the currently active sub-category tab
+            const activeSubCategoryTab = $('#pills-tab .nav-link.active');
+            if (activeSubCategoryTab.length === 0) return;
+
+            const selectedSubId = activeSubCategoryTab.attr('id').replace('pills-', '').replace('-tab', '');
+            
+            // Clear current content in the active pane
+            $(`#pills-${selectedSubId} .row`).empty();
+
+            let productsToDisplay = [];
+            
+            if (productsData[selectedSubId]) {
+                productsToDisplay = productsData[selectedSubId];
+            }
+
+            let html = '';
+            if (productsToDisplay.length > 0) {
+                productsToDisplay.forEach(function(product) {
+                    const pName = product.ProductName;
+                    const pPrice = parseFloat(product.Price).toFixed(2);
+                    const pId = product.ID;
+                    const pQty = parseInt(product.Quantity);
+                    const isOutOfStock = (product.Type === 'Countable' && pQty <= 0);
+                    const clickAction = isOutOfStock ? "" : `onclick="addToCart(${pId}, '${pName.replace(/'/g, "\\'")}', ${product.Price})"`;
+                    const stockLabel = isOutOfStock ? "<br><small class='badge badge-light text-danger'>Out of Stock</small>" : "";
+                    const opacity = isOutOfStock ? "style='opacity: 0.6; cursor: not-allowed;'" : "";
+                    const colorClass = 'cat-color-' + (product.SubCategoryID % 5);
+
+                    html += `
+                        <div class='col-xl-3 col-md-4 col-6 mb-3'>
+                            <div class='food-card ${colorClass}' ${clickAction} ${opacity}>
+                                <span class='item-name'>${pName} ${stockLabel}</span>
+                                <span class='item-price'>${pPrice}</span>
+                            </div>
+                        </div>`;
+                });
+            } else {
+                html = '<div class="col-12 text-center text-gray-500 mt-4">No items in this category</div>';
+            }
+
+            $(`#pills-${selectedSubId} .row`).html(html);
+        };
 
         function searchProducts() {
             let query = document.getElementById('productSearch').value.toLowerCase();
@@ -595,6 +644,35 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
             renderCart();
         }
 
+        function removeItem(index) {
+            const item = cart[index];
+            if (item.detail_id) {
+                // Item exists in DB, delete from table via AJAX
+                Swal.fire({
+                    title: 'Remove Item?',
+                    text: "This item will be deleted from the order record.",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, remove it'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.post('delete_order_detail.php', { detail_id: item.detail_id }, function(res) {
+                            if (res.status === 'success') {
+                                cart.splice(index, 1);
+                                renderCart();
+                            } else {
+                                Swal.fire('Error', res.message, 'error');
+                            }
+                        }, 'json');
+                    }
+                });
+            } else {
+                // New item not yet saved, just remove from array
+                cart.splice(index, 1);
+                renderCart();
+            }
+        }
+
         function setPaymentMethod(btn, method) {
             document.getElementById('payment-method').value = method;
             document.querySelectorAll('.payment-btn').forEach(b => {
@@ -609,19 +687,21 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
         let currentOrderId = null;
         let currentOrderType = 'Dine-in';
 
-        function selectTable(name, id) {
+        function selectTable(name, id, orderId = null) {
             document.getElementById('tableSelectDropdown').innerText = name;
             selectedTableId = id;
             
             $.ajax({
                 url: 'get_order_details.php',
                 type: 'GET',
-                data: { table_id: id },
+                data: { table_id: id, order_id: orderId },
                 dataType: 'json',
                 success: function(response) {
                     if (response.status === 'success') {
                         cart = response.items;
                         currentOrderId = response.order_id;
+                        // Sync the order type UI with the loaded order
+                        setOrderType(response.order_type, false); 
                         document.getElementById('advance-amount').value = response.advance || 0;
                         document.getElementById('damage-claim').value = response.damage_claim || 0;
                         renderCart();
@@ -637,7 +717,7 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
             });
         }
 
-        function setOrderType(type) {
+        function setOrderType(type, clear = true) {
             currentOrderType = type;
             
             // Update Badge
@@ -654,7 +734,7 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
                 btnTake.classList.add('btn-outline-secondary');
                 
                 if(selectedTableId === null) document.getElementById('tableSelectDropdown').innerText = 'Table Select';
-                renderCart();
+                if(clear) renderCart();
             } else {
                 // Take Away Mode
                 btnTake.classList.add('btn-danger', 'active');
@@ -662,10 +742,11 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
                 btnDine.classList.remove('btn-danger', 'active');
                 btnDine.classList.add('btn-outline-secondary');
                 
-                // Reset for new Take Away order
-                clearCart();
-                selectedTableId = null;
-                currentOrderId = null;
+                if (clear) {
+                    clearCart();
+                    selectedTableId = null;
+                    currentOrderId = null;
+                }
                 document.getElementById('tableSelectDropdown').innerText = 'Take Away';
             }
         }
@@ -883,24 +964,65 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
         }
 
         function printKOT() {
-            if (currentOrderId) {
-                // Existing Active Order
-                $.ajax({
-                    url: 'get_order_ids.php',
-                    type: 'POST',
-                    data: { order_id: currentOrderId },
-                    dataType: 'json',
-                    success: function(response) {
-                        if (response.status === 'success' && response.ids.length > 0) {
-                            window.open('../waitor/print_kot.php?order_id=' + currentOrderId + '&ids=' + response.ids.join(',') + '&kot_num=REPRINT', 'KOT', 'width=400,height=600');
-                        } else {
-                            Swal.fire("Info", "No items found for this order", "info");
+            const newItems = cart.filter(item => item.detail_id === undefined || item.order_status === 0);
+
+            if (currentOrderId) { // Bill is already open for a table
+                if (newItems.length > 0) {
+                    // Save only the new items to the existing order
+                    $.ajax({
+                        url: 'save_new_items_to_order.php', // Call the new backend endpoint
+                        type: 'POST',
+                        data: {
+                            order_id: currentOrderId,
+                            new_items: JSON.stringify(newItems) // Send only the new items
+                        },
+                        dataType: 'json',
+                        success: function(response) {
+                            if (response.status === 'success') {
+                                // Print KOT for the newly added items
+                                window.open('../waitor/print_kot.php?order_id=' + currentOrderId + '&ids=' + response.detail_ids.join(',') + '&kot_num=' + response.kot_num, 'KOT', 'width=400,height=600');
+
+                                // Reload the cart to update item statuses and detail_ids
+                                selectTable(document.getElementById('tableSelectDropdown').innerText, selectedTableId);
+                                Swal.fire('Success', 'New items added and KOT printed!', 'success');
+                            } else {
+                                Swal.fire('Error', 'Failed to add new items: ' + response.message, 'error');
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            Swal.fire('Error', 'AJAX error saving new items: ' + error, 'error');
                         }
-                    },
-                    error: function() { Swal.fire("Error", "Failed to fetch order details", "error"); }
-                });
-            } else if (cart.length > 0) {
-                // New Order (Take Away or New Dine-in) -> Save as Pending then Print
+                    });
+                } else {
+                    // No new items, maybe reprint KOT for existing items?
+                    Swal.fire({
+                        title: 'No New Items',
+                        text: 'There are no new items to add to the order. Do you want to reprint the KOT for all existing items?',
+                        icon: 'info',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes, Reprint KOT',
+                        cancelButtonText: 'No'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Fetch all item IDs for the current order and print KOT
+                            $.ajax({
+                                url: 'get_order_ids.php', // This fetches ALL item IDs for an existing order
+                                type: 'POST',
+                                data: { order_id: currentOrderId },
+                                dataType: 'json',
+                                success: function(response) {
+                                    if (response.status === 'success' && response.ids.length > 0) {
+                                        window.open('../waitor/print_kot.php?order_id=' + currentOrderId + '&ids=' + response.ids.join(',') + '&kot_num=REPRINT', 'KOT', 'width=400,height=600');
+                                    } else {
+                                        Swal.fire("Info", "No items found for this order to reprint KOT.", "info");
+                                    }
+                                },
+                                error: function() { Swal.fire("Error", "Failed to fetch order details for reprinting KOT.", "error"); }
+                            });
+                        }
+                    });
+                }
+            } else if (cart.length > 0) { // Scenario 3: New Order (Take Away or New Dine-in)
                 let orderData = {
                     items: cart,
                     total: parseFloat(document.getElementById('total-amount').innerText),
@@ -909,7 +1031,6 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
                     advance: parseFloat(document.getElementById('advance-amount').value) || 0,
                     damageClaim: parseFloat(document.getElementById('damage-claim').value) || 0,
                     tableId: selectedTableId || 0,
-                    orderId: 0,
                     orderType: currentOrderType,
                     orderStatus: 'Pending' // Save as Pending
                 };
@@ -935,11 +1056,20 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
                             var ids = response.ids.join(',');
                             window.open('../waitor/print_kot.php?order_id=' + response.order_id + '&ids=' + ids + '&kot_num=' + response.kot_num, 'KOT', 'width=400,height=600');
                             
-                            // Optional: If Dine-in, you might want to reload tables or show success
                             const Toast = Swal.mixin({
                                 toast: true, position: 'top-end', showConfirmButton: false, timer: 3000
                             });
-                            Toast.fire({ icon: 'success', title: 'Take Away KOT Printed' });
+                            Toast.fire({ icon: 'success', title: 'KOT Printed' });
+                            
+                            // After printing KOT for a new order, reload the cart to reflect saved items
+                            // This is important to update detail_id and order_status for newly added items
+                            if (selectedTableId) {
+                                selectTable(document.getElementById('tableSelectDropdown').innerText, selectedTableId);
+                            } else {
+                                // For take-away, clear the cart as it's a new order
+                                clearCart();
+                            }
+
                         } else {
                             Swal.fire("Error", response.message, "error");
                         }
@@ -947,7 +1077,7 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
                     error: function() { Swal.fire("Error", "Failed to save order", "error"); }
                 });
             } else {
-                Swal.fire("Error", "Cart is empty", "error");
+                Swal.fire("Error", "Cart is empty. Add items before printing KOT.", "error");
             }
         }
 
@@ -1044,6 +1174,11 @@ $initial_processing = $counts['processing_count'] ? intval($counts['processing_c
                 }
             });
         }, 5000);
+
+        // Tab show event listener to trigger product rendering
+        $(document).on('shown.bs.tab', 'a[data-toggle="pill"]', function (e) {
+            renderItems();
+        });
 
         setInterval(function() {
             // Prevent multiple overlapping alerts or sounds

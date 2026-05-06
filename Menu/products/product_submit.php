@@ -1,51 +1,56 @@
 <?php
+session_start();
 include('../../include/dbconnection.php');
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $parent_cat_id = $_POST['parent_category'];
-    $sub_cat_id = $_POST['sub_category'];
-    $product_name = $_POST['product_name'];
-    $product_price = $_POST['product_price'];
-    $product_countable = $_POST['product_countable']; // This will be 'Countable' or 'Uncountable'
-    $product_unit = null;
+    $parent_id = $_POST['parent_category'];
+    $sub_id = $_POST['sub_category'];
+    $product_name = trim($_POST['product_name']);
+    $price = $_POST['price'];
+    $type = $_POST['type'];
+    $unit = $_POST['unit'] ?? '';
 
-    // Basic validation
-    if (empty($parent_cat_id) || empty($sub_cat_id) || empty($product_name) || empty($product_price)) {
-        echo "All fields including categories are required.";
+    if (empty($product_name) || empty($sub_id)) {
+        echo "Product Name and Sub Category are required.";
         exit;
     }
 
-    if ($product_countable == 'Countable') {
-        if (isset($_POST['product_unit']) && !empty($_POST['product_unit'])) {
-            $product_unit = $_POST['product_unit'];
-        } else {
-            echo "Product unit is required for countable products.";
-            exit;
-        }
-    }
-
-
-    // Check for duplicate product name to avoid confusion
+    // Check for duplicate product name
     $check_stmt = $con->prepare("SELECT ID FROM tblproducts WHERE ProductName = ?");
     $check_stmt->bind_param("s", $product_name);
     $check_stmt->execute();
     $check_stmt->store_result();
     if ($check_stmt->num_rows > 0) {
-        echo "A product with this name already exists.";
+        echo "Product name already exists. Please choose a different one.";
         $check_stmt->close();
         $con->close();
         exit;
     }
     $check_stmt->close();
 
-    // Using prepared statements to prevent SQL injection
+    // Insert product
     $stmt = $con->prepare("INSERT INTO tblproducts (ParentCategoryID, SubCategoryID, ProductName, Price, Type, Unit) VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("iisdss", $parent_cat_id, $sub_cat_id, $product_name, $product_price, $product_countable, $product_unit);
+    $stmt->bind_param("iisdss", $parent_id, $sub_id, $product_name, $price, $type, $unit);
 
     if ($stmt->execute()) {
+        // Log user activity
+        $user_id = $_SESSION['uid'];
+        $activity_desc = "Added new product: $product_name (Price: $price, Type: $type)";
+        $log_sql = "INSERT INTO tbluser_activity (UserID, Activity, ActivityTime) VALUES (?, ?, NOW())";
+        
+        if ($log_stmt = mysqli_prepare($con, $log_sql)) {
+            mysqli_stmt_bind_param($log_stmt, "is", $user_id, $activity_desc);
+            if (!mysqli_stmt_execute($log_stmt)) {
+                error_log("Error inserting activity log: " . mysqli_stmt_error($log_stmt));
+            }
+            mysqli_stmt_close($log_stmt);
+        } else {
+            error_log("Error preparing activity log statement: " . mysqli_error($con));
+        }
+
         echo 'yes';
     } else {
-        echo 'Something went wrong. Please try again. Error: ' . htmlspecialchars($stmt->error);
+        echo 'Something went wrong. Error: ' . htmlspecialchars($stmt->error);
     }
     $stmt->close();
     $con->close();
